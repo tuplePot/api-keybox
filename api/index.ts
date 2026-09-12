@@ -1,13 +1,16 @@
 /**
- * Vercel serverless entry point.
+ * Vercel serverless entrypoint.
  *
- * Unlike src/index.ts (a long-running Bun server that calls .listen()), Vercel
- * invokes the default-exported Elysia app's fetch handler per request. We
- * validate env and open the (cached, idempotent) Mongoose connection at cold
- * start via top-level await so the first request already has a live DB.
+ * Vercel's Bun runtime requires the default export to be a function or a
+ * `{ fetch }` server object — NOT a raw Elysia instance. So we build the app
+ * once (cold start) and expose Elysia's Fetch handler via `app.handle`.
  *
- * vercel.json rewrites every path to /api/index; Elysia still sees the original
- * request URL, so its routing (/health, /auth/*, /keybox/*, ...) works as-is.
+ * The DB connection is opened per request (idempotent — connectDatabase guards
+ * on readyState), which is the serverless-friendly pattern: the connection is
+ * reused across warm invocations and re-established after a cold start.
+ *
+ * vercel.json rewrites every path here; Elysia still sees the original request
+ * URL, so its routing (/health, /auth/*, /keybox/*, ...) works as-is.
  */
 
 import { getEnv } from "../src/config/env";
@@ -15,6 +18,11 @@ import { connectDatabase } from "../src/config/database";
 import { buildApp } from "../src/app";
 
 getEnv(); // fails fast if env is misconfigured
-await connectDatabase(); // reused across warm invocations (readyState guard)
+const app = buildApp();
 
-export default buildApp();
+export default {
+  async fetch(request: Request) {
+    await connectDatabase();
+    return app.handle(request);
+  },
+};
