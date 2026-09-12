@@ -32,7 +32,7 @@
     // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
-    "types": ["bun"],                                            /* Specify type package names to be included without being referenced in a source file. */
+    // "types": [],                                      /* Omitted: all @types/* packages (incl. @types/bun) are auto-included. Listing them here breaks single-file transpilation (TS2688). */
     // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
     // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
     // "resolveJsonModule": true,                        /* Enable importing .json files. */
