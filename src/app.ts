@@ -16,6 +16,7 @@ import { usersRoutes } from "./modules/users/users.route";
 import { AppError, errorBody, successBody } from "./utils/errors";
 import { logger } from "./utils/logger";
 import { isProduction } from "./config/env";
+import { connectDatabase } from "./config/database";
 
 export function buildApp() {
   // OpenAPI exposes the full API structure; disable it in production so it is
@@ -88,3 +89,28 @@ export function buildApp() {
 }
 
 export type App = ReturnType<typeof buildApp>;
+
+/**
+ * Serverless default export (Vercel).
+ *
+ * Vercel's Bun runtime compiles this module and requires its default export to
+ * be a function or a `{ fetch }` server object — a raw Elysia instance or a bare
+ * named export is rejected ("The default export must be a function or server").
+ *
+ * We build one shared instance at cold start (so rate-limit state persists
+ * across warm invocations) and open the DB connection per request. The connect
+ * is idempotent — `connectDatabase` early-returns when already connected, so
+ * warm invocations reuse the existing socket and only cold starts reconnect.
+ *
+ * Local/long-running startup uses `buildApp()` directly (see `src/index.ts`) and
+ * tests build fresh instances per case — neither path uses this export, so the
+ * DB is never touched merely by importing this module.
+ */
+const serverlessApp = buildApp();
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    await connectDatabase();
+    return serverlessApp.handle(request);
+  },
+};
